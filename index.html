@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tumzy</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div id="root">
+        <div class="chat-layout">
+            <button class="hamburger">☰</button>
+            
+            <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo">Tumzy</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="sidebar-item sidebar-item--active">
+                <span class="sidebar-item-name"># Global</span>
+                </div>
+                <!--
+                <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    <span>Direct Messages</span>
+                    <button class="icon-btn" title="New DM">+</button>
+                </div>
+                </div>
+                
+                <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    <span>Groups</span>
+                    <button class="icon-btn" title="Create Group">+</button>
+                </div>
+                </div>
+                --->
+            </nav>
+            
+            <div class="sidebar-footer">
+                <input type="text" class="sidebar-footer-user" id="my-username" value="" placeholder="User_123">
+                <button class="logout-btn" id="rename-btn">Rename</button>
+            </div> 
+            </aside>
+
+            <div class="chat-window">
+            <div class="chat-header">
+                <span># Global</span>
+            </div>
+            
+            <div class="message-list">
+                <div id="message-container" class="message-container"></div>
+            </div>
+            
+            <div class="message-input-container">
+                <div class="message-input-wrap">
+                    <textarea class="message-input" id="message-input" placeholder="Message..." rows="1"></textarea>
+                    <button class="send-btn" id="send-btn" disabled="">Send</button>
+                </div>
+                <span class="char-counter" id="char-counter">0/500</span>
+            </div>
+            </div>
+
+        </div>
+        </div>
+   </body>
+   <script src="https://unpkg.com/bad-words@3.0.4/lib/bad-words.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js" defer></script>
+</html>
