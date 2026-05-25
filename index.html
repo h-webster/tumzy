@@ -8,6 +8,17 @@
 </head>
 <body>
     <div id="root">
+        <div class="login-page" id="login-page">
+            <div id="auth-container">
+                <input type="email" id="email" placeholder="Email">
+                <input type="password" id="password" placeholder="Password">
+                <button id="login-btn">Login</button>
+                <button id="signup-btn">Sign Up</button>
+            </div>
+            <div id="chat-interface" style="display:none;">
+                <button id="logout-btn">Logout</button>
+            </div>
+        </div>
         <div class="chat-layout">
             <button class="hamburger">☰</button>
             
@@ -36,8 +47,12 @@
                 </div>
                 --->
             </nav>
-            
+            <div id="user-banning">
+                    <input type="text" id="user-ban-input">
+                    <button id="confirm-user-ban">Ban</button>
+                </div>
             <div class="sidebar-footer">
+                
                 <input type="text" class="sidebar-footer-user" id="my-username" value="" placeholder="User_123">
                 <button class="logout-btn" id="rename-btn">Rename</button>
             </div> 
@@ -66,5 +81,8 @@
    </body>
    <script src="https://unpkg.com/bad-words@3.0.4/lib/bad-words.js"></script>
    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js" defer></script>
+   <script src="bad_word_handling.js"></script>
+   <script src="user_banning.js"></script>
+    <script src="app.js"></script>
+   <script src="login.js"></script>
 </html>
