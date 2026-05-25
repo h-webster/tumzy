@@ -91,7 +91,7 @@ async function sendMessage() {
     if (!text || text.length > 500) return;
 
     text = filter.clean(text);
-
+    messageInput.value="";
     const { error } = await supabaseClient
         .from('chats')
         .insert([{ 
