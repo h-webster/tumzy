@@ -92,6 +92,15 @@ function handleUserSignIn(user) {
     
     // Run your join logic if needed
     if (typeof userJoin === "function") userJoin(currentUserID);
+
+    // still blocks random user from changing this to their uuid
+    console.log(currentUserID);
+    const banContainer = document.getElementById("user-banning");
+    if (currentUserID == "bd37f20c-0c65-4dbd-b4ac-ccd46238d619") {
+        banContainer.style.display = "block";
+    } else {
+        banContainer.style.display = "none";
+    }
 }
 
 
