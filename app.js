@@ -7,7 +7,7 @@ let currentUsername = "Missing";
 let currentUserID = null; // Will be a UUID string now
 
 // Move these to the very top of your chat script
-const messagesContainer = document.getElementById("message-container");
+const messagesContainer = document.getElementById("message-list");
 const messageInput = document.getElementById("message-input");
 const sendButton = document.getElementById("send-btn");
 const charCounter = document.getElementById("char-counter");
@@ -49,8 +49,12 @@ async function initChat() {
         .select('*')
         .order('created_at', { ascending: true });
 
-    if (!error) existingMessages.forEach(msg => displayMessage(msg));
-
+    if (!error) {
+        existingMessages.forEach(msg => displayMessage(msg));
+        setTimeout(() => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 100);
+    }
     // 5. Realtime Subscription
     supabaseClient
         .channel('public:chats')
@@ -61,6 +65,18 @@ async function initChat() {
                 const elements = document.querySelectorAll(`.user-${payload.new.user_id}`);
                 elements.forEach(el => el.textContent = payload.new.name);
             }
+        })
+        .subscribe();
+    supabaseClient
+        .channel('public:banned_users')
+        .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'banned_users',
+            filter: `user_id=eq.${currentUserID}` // Only listen for changes to THEMSELVES
+        }, (payload) => {
+            alert("You have been banned by an admin.");
+            window.location.reload(); // Refresh to lock them out
         })
         .subscribe();
 }
@@ -77,6 +93,7 @@ function handleUserSignIn(user) {
     // Run your join logic if needed
     if (typeof userJoin === "function") userJoin(currentUserID);
 }
+
 
 async function sendMessage() {
     // Always get the fresh user object to ensure they aren't banned/logged out
@@ -102,10 +119,17 @@ async function sendMessage() {
 
     if (error) {
         console.error("Postgres rejected the message:", error.message);
-        if (error.message.includes("RLS")) alert("Permission denied (You might be banned).");
+        if (error.code === '42501' || error.message.includes("violates check constraint")) {
+            alert("❌ You have been banned from this chat.");
+            messageInput.disabled = true; // Lock the input
+            sendButton.disabled = true;
+        } else {
+            alert("Error: " + error.message);
+        }
     } else {
         messageInput.value = "";
         charCounter.textContent = "0/500";
+        scrollToBottom();
     }
 }
 
@@ -162,8 +186,10 @@ function displayMessage(data) {
     `;
     
     messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}messageInput.addEventListener("input", () => {
+    scrollToBottom();
+}
+
+messageInput.addEventListener("input", () => {
     const textLength = messageInput.value.trim().length;
 
     charCounter.textContent = `${textLength}/500`;
@@ -193,3 +219,13 @@ messageInput.addEventListener("keydown", (e) => {
         sendMessage();
     }
 });
+function scrollToBottom() {
+    const container = document.getElementById("message-container");
+    // If the scrollbar is on the parent ".message-list", use that instead:
+    // const container = document.querySelector(".message-list");
+    
+    container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth' // Use 'auto' for instant jump on load
+    });
+}

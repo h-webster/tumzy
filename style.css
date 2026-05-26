@@ -362,7 +362,9 @@ body,
   flex-direction: column;
   gap: 2px;
 }
-
+#message-container {
+  width: 100%;
+}
 .message-list::-webkit-scrollbar {
   width: 6px;
 }
