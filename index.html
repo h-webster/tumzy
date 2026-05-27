@@ -5,20 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tumzy</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="icon" type="image/x-icon" href="/favicon.png">
 </head>
 <body>
     <div id="root">
         <div class="login-page" id="login-page">
-            <div id="auth-container">
-                <input type="email" id="email" placeholder="Email">
-                <input type="password" id="password" placeholder="Password">
-                <button id="login-btn">Login</button>
-                <button id="signup-btn">Sign Up</button>
+            <div class="auth-card" id="auth-container">
+                <h1 class="auth-title">Create <span style="color: rgb(72, 168, 203);">Tumzy</span> Account</h1>
+                <p class="auth-subtitle">Join our amazing community today!</p>
+                
+                <div class="auth-form-group">
+                    <input type="email" class="auth-input" id="email" placeholder="Email" required>
+                    <input type="password" class="auth-input" id="password" placeholder="Password" required>
+                </div>
+
+                <div class="auth-action-group">
+                    <button id="signup-btn" class="auth-btn auth-btn-primary">Sign Up</button>
+                    <button id="login-btn" class="auth-btn auth-btn-outline">Login</button>
+                </div>
             </div>
-            <div id="chat-interface" style="display:none;">
-                <button id="logout-btn">Logout</button>
-            </div>
-        </div>
+        </div> 
         <div class="chat-layout">
             <button class="hamburger">☰</button>
             
@@ -29,30 +35,15 @@
             
             <nav class="sidebar-nav">
                 <div class="sidebar-item sidebar-item--active">
-                <span class="sidebar-item-name"># Global</span>
+                    <span class="sidebar-item-name">Main</span>
+                    
                 </div>
-                <!--
-                <div class="sidebar-section">
-                <div class="sidebar-section-header">
-                    <span>Direct Messages</span>
-                    <button class="icon-btn" title="New DM">+</button>
-                </div>
-                </div>
-                
-                <div class="sidebar-section">
-                <div class="sidebar-section-header">
-                    <span>Groups</span>
-                    <button class="icon-btn" title="Create Group">+</button>
-                </div>
-                </div>
-                --->
             </nav>
             <div id="user-banning">
                 <input type="text" id="user-ban-input">
                 <button id="confirm-user-ban">Ban</button>
             </div>
             <div class="sidebar-footer">
-                
                 <input type="text" class="sidebar-footer-user" id="my-username" value="" placeholder="User_123">
                 <button class="logout-btn" id="rename-btn">Rename</button>
             </div> 
@@ -60,7 +51,14 @@
 
             <div class="chat-window">
             <div class="chat-header">
-                <span># Global</span>
+                <span>Main</span>
+                <div class="status-notice-box">
+                    <span class="status-icon">⚠️</span>
+                    <div class="status-text-content">
+                        <span class="status-warning-title">Community Standards</span>
+                        <p class="status-warning-detail">Inappropriate messages will be deleted and may result in a permanent account ban.</p>
+                    </div>
+                </div>
             </div>
             
             <div class="message-list" id="message-list">

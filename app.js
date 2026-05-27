@@ -34,6 +34,7 @@ async function initChat() {
         console.log("No active session found.");
     }
     console.log(session.user);
+    console.log(session);
     // 3. Listen for Auth Changes
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session) {
@@ -128,6 +129,14 @@ async function sendMessage() {
 
     if (error) {
         console.error("Postgres rejected the message:", error.message);
+        if (error) {
+           // Replace your current error block with this:
+            if (error) {
+                console.error("FULL DATABASE ERROR:", error); // Look at this in your browser console!
+                alert("DB says: " + error.message + " (Code: " + error.code + ")");
+            }
+            return; 
+        }
         if (error.code === '42501' || error.message.includes("violates check constraint")) {
             alert("❌ You have been banned from this chat.");
             messageInput.disabled = true; // Lock the input
