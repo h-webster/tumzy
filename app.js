@@ -6,6 +6,10 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUsername = "Missing";
 let currentUserID = null; // Will be a UUID string now
 
+let typingTimeout = null;
+const typingIndicator = document.getElementById("typing-indicator");
+let chatChannel = null;
+
 // Move these to the very top of your chat script
 const messagesContainer = document.getElementById("message-list");
 const messageInput = document.getElementById("message-input");
@@ -51,38 +55,104 @@ async function initChat() {
         .order('created_at', { ascending: true });
 
     if (!error) {
+        const container = document.getElementById('message-container');
+        container.innerHTML = ''; // Clear history to prevent doubles
         existingMessages.forEach(msg => displayMessage(msg));
         setTimeout(() => {
+            // set timeout to wait for it to load
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }, 100);
     }
     // 5. Realtime Subscription
-    supabaseClient
-        .channel('public:chats')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats' }, (payload) => {
-            // Check if message already exists in the DOM to prevent doubles
+    chatChannel = supabaseClient.channel('room:global:chats', {
+        config: { private: true }
+    });
+    chatChannel    
+        .on('broadcast', { event: 'INSERT' }, (payload) => {
+            const row = payload.new;
             if (!document.getElementById(`msg-${payload.new.id}`)) {
                 displayMessage(payload.new);
             }
         })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chats' }, (payload) => {
+        .on('postgres_changes', { event: 'UPDATE'}, (payload) => {
             // Handle name updates across all messages from this user
+            const row = payload.new;
             const elements = document.querySelectorAll(`.user-${payload.new.user_id}`);
             elements.forEach(el => el.textContent = payload.new.name);
         })
-        .subscribe(); 
+        .on('presence', { event: 'sync' }, () => {
+            const state = chatChannel.presenceState();
+            updateTypingUI(state);
+        })
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log("Connected to Realtime!");
+                await chatChannel.track({
+                    user: currentUsername,
+                    isTyping: false
+                });
+            }
+        });
+    
+    if (currentUserID) subscribeToBans(currentUserID);
+   /*
+   const chatChannel = supabaseClient.channel('public:chats');
+
+    chatChannel
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats' }, (payload) => {
+            if (!document.getElementById(`msg-${payload.new.id}`)) displayMessage(payload.new);
+        })
+        .on('presence', { event: 'sync' }, () => {
+            const state = chatChannel.presenceState();
+            updateTypingUI(state);
+        })
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                // This tracks the user as "Online" initially
+                await chatChannel.track({
+                    user: currentUsername,
+                    isTyping: false
+                });
+            }
+        });
+        */
+}
+
+function subscribeToBans(userId) {
     supabaseClient
-        .channel('public:banned_users')
+        .channel(`bans-${userId}`) // Unique channel name
         .on('postgres_changes', { 
             event: 'INSERT', 
             schema: 'public', 
             table: 'banned_users',
-            filter: `user_id=eq.${currentUserID}` // Only listen for changes to THEMSELVES
+            filter: `user_id=eq.${userId}` 
         }, (payload) => {
             alert("You have been banned by an admin.");
-            window.location.reload(); // Refresh to lock them out
+            window.location.reload();
         })
         .subscribe();
+}
+
+function updateTypingUI(presenceState) {
+    const typingUsers = [];
+    
+    // Iterate through all connected users in the presence state
+    Object.values(presenceState).forEach(userPresences => {
+        userPresences.forEach(p => {
+            // If they are typing and NOT us, add to list
+            if (p.isTyping && p.user !== currentUsername) {
+                typingUsers.push(p.user);
+            }
+        });
+    });
+
+    if (typingUsers.length === 0) {
+        typingIndicator.textContent = "";
+    } else if (typingUsers.length === 1) {
+        typingIndicator.textContent = `${typingUsers[0]} is typing...`;
+    } else {
+        typingIndicator.textContent = "Multiple people are typing...";
+    }
 }
 
 function handleUserSignIn(user) {
@@ -120,8 +190,17 @@ async function sendMessage() {
     let text = messageInput.value.trim();
     if (!text || text.length > 500) return;
 
+    if (chatChannel && chatChannel.state === 'joined') {
+        chatChannel.track({
+            user: currentUsername,
+            isTyping: false
+        });
+    }
+    clearTimeout(typingTimeout);
+
     text = filter.clean(text);
     messageInput.value="";
+
     const { error } = await supabaseClient
         .from('chats')
         .insert([{ 
@@ -154,6 +233,8 @@ async function sendMessage() {
         charCounter.textContent = "0/500";
         scrollToBottom();
     }
+
+    
 }
 
 // Fixed Rename Logic
@@ -180,6 +261,10 @@ renameButton.addEventListener("click", async () => {
         currentUsername = newName;
         localStorage.setItem('username', newName);
         alert("Username updated!");
+        // after currentUsername updated
+        if (chatChannel && chatChannel.state === 'joined') {
+            await chatChannel.track({ user: currentUsername, isTyping: false });
+        }
     } else {
         console.error(error);
     }
@@ -215,7 +300,7 @@ function displayMessage(data) {
     scrollToBottom();
 }
 
-messageInput.addEventListener("input", () => {
+messageInput.addEventListener("input", async () => {
     const textLength = messageInput.value.trim().length;
 
     charCounter.textContent = `${textLength}/500`;
@@ -233,6 +318,30 @@ messageInput.addEventListener("input", () => {
     } else {
         charCounter.style.color = ""; 
     }
+
+
+    // 1. Tell Supabase we ARE typing
+    if (chatChannel && chatChannel.state === 'joined') {
+        await chatChannel.track({
+            user: currentUsername,
+            isTyping: true
+        });
+
+        clearTimeout(typingTimeout);
+        // stop typing after 2 seconds of after inactivity
+        typingTimeout = setTimeout(async () => {
+            if (chatChannel.state === 'joined') {
+                await chatChannel.track({
+                    user: currentUsername,
+                    isTyping: false
+                });
+            }
+        }, 2000);
+    } 
+
+    // 2. Clear the existing timeout
+    
+    
 });
 
 // 6. Trigger Send on Button Click
