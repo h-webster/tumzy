@@ -65,7 +65,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
         if (authContainer) authContainer.style.display = 'none';
         if (loginPage) loginPage.style.display = 'none';
         if (chatInterface) chatInterface.style.display = 'block';
-
+        
         // Start Chat
         initChat();
 

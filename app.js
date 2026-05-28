@@ -59,15 +59,18 @@ async function initChat() {
     // 5. Realtime Subscription
     supabaseClient
         .channel('public:chats')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, (payload) => {
-            if (payload.eventType === 'INSERT') {
-                if (!document.getElementById(`msg-${payload.new.id}`)) displayMessage(payload.new);
-            } else if (payload.eventType === 'UPDATE') {
-                const elements = document.querySelectorAll(`.user-${payload.new.user_id}`);
-                elements.forEach(el => el.textContent = payload.new.name);
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats' }, (payload) => {
+            // Check if message already exists in the DOM to prevent doubles
+            if (!document.getElementById(`msg-${payload.new.id}`)) {
+                displayMessage(payload.new);
             }
         })
-        .subscribe();
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chats' }, (payload) => {
+            // Handle name updates across all messages from this user
+            const elements = document.querySelectorAll(`.user-${payload.new.user_id}`);
+            elements.forEach(el => el.textContent = payload.new.name);
+        })
+        .subscribe(); 
     supabaseClient
         .channel('public:banned_users')
         .on('postgres_changes', { 
@@ -97,7 +100,7 @@ function handleUserSignIn(user) {
     // still blocks random user from changing this to their uuid
     console.log(currentUserID);
     const banContainer = document.getElementById("user-banning");
-    if (currentUserID == "bd37f20c-0c65-4dbd-b4ac-ccd46238d619") {
+    if (currentUserID == "f4554478-77a1-4c25-bc9e-a54a080cbdf5") {
         banContainer.style.display = "block";
     } else {
         banContainer.style.display = "none";
@@ -129,6 +132,7 @@ async function sendMessage() {
 
     if (error) {
         console.error("Postgres rejected the message:", error.message);
+        /*
         if (error) {
            // Replace your current error block with this:
             if (error) {
@@ -137,6 +141,7 @@ async function sendMessage() {
             }
             return; 
         }
+        */
         if (error.code === '42501' || error.message.includes("violates check constraint")) {
             alert("❌ You have been banned from this chat.");
             messageInput.disabled = true; // Lock the input
@@ -187,6 +192,9 @@ function displayMessage(data) {
     const messagesContainer = document.getElementById('message-container');
     if (!messagesContainer) return; 
 
+    if (document.getElementById(`msg-${data.id}`)) {
+        return; 
+    }
     // Now correctly compares UUID strings
     const isMine = data.user_id === currentUserID; 
 
