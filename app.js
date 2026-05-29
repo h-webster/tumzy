@@ -9,6 +9,7 @@ let currentUserID = null; // Will be a UUID string now
 let typingTimeout = null;
 const typingIndicator = document.getElementById("typing-indicator");
 let chatChannel = null;
+let chatInitialized = false;
 
 // Move these to the very top of your chat script
 const messagesContainer = document.getElementById("message-list");
@@ -18,6 +19,8 @@ const charCounter = document.getElementById("char-counter");
 const renameButton = document.getElementById("rename-btn");
 const usernameInput = document.getElementById("my-username"); 
 async function initChat() {
+    if (chatInitialized) return;
+    chatInitialized = true;
     // 1. Load Banned Words
     try {
         const response = await fetch('badwords.txt');
@@ -64,25 +67,27 @@ async function initChat() {
         }, 100);
     }
     // 5. Realtime Subscription
-    chatChannel = supabaseClient.channel('room:global:chats', {
-        config: { private: true }
-    });
-    chatChannel    
-        .on('broadcast', { event: 'INSERT' }, (payload) => {
-            const row = payload.new;
+    chatChannel = supabaseClient.channel('room:global:chats');
+    chatChannel
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats' }, (payload) => {
             if (!document.getElementById(`msg-${payload.new.id}`)) {
                 displayMessage(payload.new);
             }
         })
-        .on('postgres_changes', { event: 'UPDATE'}, (payload) => {
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chats' }, (payload) => {
             // Handle name updates across all messages from this user
             const row = payload.new;
             const elements = document.querySelectorAll(`.user-${payload.new.user_id}`);
             elements.forEach(el => el.textContent = payload.new.name);
         })
         .on('presence', { event: 'sync' }, () => {
-            const state = chatChannel.presenceState();
-            updateTypingUI(state);
+            updateTypingUI(chatChannel.presenceState());
+        })
+        .on('presence', { event: 'join' }, () => {
+            updateTypingUI(chatChannel.presenceState());
+        })
+        .on('presence', { event: 'leave' }, () => {
+            updateTypingUI(chatChannel.presenceState());
         })
         .subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
@@ -320,28 +325,18 @@ messageInput.addEventListener("input", async () => {
     }
 
 
-    // 1. Tell Supabase we ARE typing
-    if (chatChannel && chatChannel.state === 'joined') {
-        await chatChannel.track({
-            user: currentUsername,
-            isTyping: true
-        });
-
+    if (chatChannel) {
         clearTimeout(typingTimeout);
-        // stop typing after 2 seconds of after inactivity
-        typingTimeout = setTimeout(async () => {
-            if (chatChannel.state === 'joined') {
-                await chatChannel.track({
-                    user: currentUsername,
-                    isTyping: false
-                });
-            }
-        }, 2000);
-    } 
+        if (textLength > 0) {
+            await chatChannel.track({ user: currentUsername, isTyping: true });
+            typingTimeout = setTimeout(async () => {
+                await chatChannel.track({ user: currentUsername, isTyping: false });
+            }, 2000);
+        } else {
+            await chatChannel.track({ user: currentUsername, isTyping: false });
+        }
+    }
 
-    // 2. Clear the existing timeout
-    
-    
 });
 
 // 6. Trigger Send on Button Click
