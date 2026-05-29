@@ -14,6 +14,8 @@ const charCounter = document.getElementById("char-counter");
 const renameButton = document.getElementById("rename-btn");
 const usernameInput = document.getElementById("my-username"); 
 async function initChat() {
+    if (chatInitialized) return;
+    chatInitialized = true;
     // 1. Load Banned Words
     try {
         const response = await fetch('badwords.txt');
