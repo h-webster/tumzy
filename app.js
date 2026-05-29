@@ -13,6 +13,7 @@ const sendButton = document.getElementById("send-btn");
 const charCounter = document.getElementById("char-counter");
 const renameButton = document.getElementById("rename-btn");
 const usernameInput = document.getElementById("my-username"); 
+let chatInitialized = false;
 async function initChat() {
     if (chatInitialized) return;
     chatInitialized = true;
